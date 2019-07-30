@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,25 +10,25 @@
   <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/3.9.0/less.min.js"></script>
   <script>
     // rem
-    (function(scope){
+    (function (scope) {
       // 下面750对应设计稿的宽度
       // document.body.innerHTML = window.innerWidth;
       var ua = navigator.userAgent.toLocaleLowerCase();
       var eventName = 'onorientationchange' in scope ? 'orientationchange' : 'resize';
       var howLong = /chrome|firefox|ucbrowser|mqqbrowser/.test(ua) || (/safari/.test(ua) && /iphone/.test(ua)) ? 0 : 300;
       // app打开浏览窗体时可能第一时间无法获取浏览器宽度, 需循环
-      var loop = function() {
+      var loop = function () {
         var winWidth = document.documentElement && document.documentElement.clientWidth ? document.documentElement.clientWidth : (window.screen ? window.screen.width : 0);
         var docWidth = window.innerWidth;
         // 宽度获取不成功延时执行
-        if (!winWidth && !docWidth) return setTimeout(function() {
+        if (!winWidth && !docWidth) return setTimeout(function () {
           loop();
         }, 100);
         var _width = !docWidth || (winWidth && winWidth < docWidth) ? winWidth : docWidth; // 兼容部分奇怪的安卓机
         document.documentElement.style.fontSize = (_width / 750 * 40) + 'px';
-        scope.addEventListener(eventName, function(){
+        scope.addEventListener(eventName, function () {
           clearTimeout(scope.orientationChangedTimeout);
-          scope.orientationChangedTimeout = setTimeout(function(){
+          scope.orientationChangedTimeout = setTimeout(function () {
             document.documentElement.style.fontSize = (_width / 750 * 40) + 'px';
           }, howLong);
         }, false);
@@ -38,17 +39,22 @@
   <script src="https://cdn.bootcss.com/vue/2.6.8/vue.min.js"></script>
   <!-- <script src="https://cdnjs.com/libraries/hammer.js/"></script> -->
 </head>
+
 <body>
   <div id="app">
-    <div class="drag__mian">
-        <div class="drag__example"></div>
-        <div class="drag__img"></div>
-      </div>
+    <div class="drag__main">
+      <img class="drag__img" src="./img/img.jpeg" />
+    </div>
+    <div class="drag__example"></div>
+    <div class="drag__highlight"></div>
+    <div class="drag__mask--wrap">
+      <div class="drag__mask"></div>
       <div class="drag__button--group">
         <button class="drag__button drag__button--cancel">取消</button>
-        <button class="drag__button--confirm">确定</button>
+        <button class="drag__button drag__button--confirm">确定</button>
       </div>
-      <div class="drag__mask"></div>
+    </div>
   </div>
 </body>
+
 </html>
