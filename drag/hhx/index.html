@@ -38,6 +38,7 @@
   </script>
   <script src="https://cdn.bootcss.com/vue/2.6.8/vue.min.js"></script>
   <!-- <script src="https://cdnjs.com/libraries/hammer.js/"></script> -->
+  <script src="./js/hammer.js"></script>
 </head>
 
 <body>
@@ -45,16 +46,57 @@
     <div class="drag__main">
       <img class="drag__img" src="./img/img.jpeg" />
     </div>
+    <p class="yellow-font drag__text drag__title">让试纸与有效区域对齐</p>
     <div class="drag__example"></div>
-    <div class="drag__highlight"></div>
+    <!-- <div class="drag__highlight"></div> -->
+    <p class="drag__tip drag__text">友情提示：<br>各品牌试纸测试结果<span class="yellow-font">有效时间</span>略有不<br>同，请认真查看试纸说明
+      试纸宽度</p>
     <div class="drag__mask--wrap">
-      <div class="drag__mask"></div>
+      <div class="drag__mask">
+        <p class="pink-font drag__mask--tip">试纸宽度</p>
+      </div>
       <div class="drag__button--group">
         <button class="drag__button drag__button--cancel">取消</button>
         <button class="drag__button drag__button--confirm">确定</button>
       </div>
     </div>
+    <div class="drag__mask--transparent">
+      <p id="text" style="color: white;"></p>
+    </div>
   </div>
+  <script>
+    function getTransformAttrStyle(style, attr) {
+      const reg = new RegExp(attr + '\\((-?[a-z0-9]+\\,?\\s?)+\\)', 'g');
+      const valueReg = new RegExp(attr +'\\(|\\)', 'g');
+      const [attrStyle] = style.match(reg);
+      const value = attrStyle.replace(valueReg, '')
+
+      return value.match(/\-?[0-9]+[a-z]*/g)
+    }
+
+    const img = document.querySelector('.drag__img');
+    const hammer = new Hammer(document.querySelector('.drag__mask--transparent'));
+    let isMoveing = false
+
+
+    hammer.get('pinch').set({ enable: true });
+    hammer.get('rotate').set({ enable: true });
+
+    hammer.on('panstart panmove panend', function(e) {
+      const eventType = e.type;
+      const transformStyle = img.style.transform;
+      let [translateX, translateY] = [e.deltaX, e.deltaY];
+      // if (transformStyle) {
+      //   const [x, y] = getTransformAttrStyle(transformStyle, 'translate3d')
+      //   translateX = (+x.replace('px', '')) + e.deltaX;
+      //   translateY = (+y.replace('px', '')) + e.deltaY;
+      // }
+      console.log(e.type, e.distance, e.deltaX, e.deltaY)
+      document.getElementById('text').innerHTML = e.type + ',' + e.deltaX + ',' + e.deltaY + ',' + transformStyle
+      img.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(1, 1) rotate3d(0, 0, 0, 0deg)`
+      eventType === 'panend' && (isMoveing = false);
+    });
+  </script>
 </body>
 
 </html>
