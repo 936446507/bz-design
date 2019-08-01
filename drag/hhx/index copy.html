@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1, maximum-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document copy</title>
+  <link rel="stylesheet/less" href="./css/style.less">
+  <script src="./js/less.min.js"></script>
+  <script>
+    // rem
+    (function (scope) {
+      // 下面750对应设计稿的宽度
+      // document.body.innerHTML = window.innerWidth;
+      var ua = navigator.userAgent.toLocaleLowerCase();
+      var eventName = 'onorientationchange' in scope ? 'orientationchange' : 'resize';
+      var howLong = /chrome|firefox|ucbrowser|mqqbrowser/.test(ua) || (/safari/.test(ua) && /iphone/.test(ua)) ? 0 : 300;
+      // app打开浏览窗体时可能第一时间无法获取浏览器宽度, 需循环
+      var loop = function () {
+        var winWidth = document.documentElement && document.documentElement.clientWidth ? document.documentElement.clientWidth : (window.screen ? window.screen.width : 0);
+        var docWidth = window.innerWidth;
+        // 宽度获取不成功延时执行
+        if (!winWidth && !docWidth) return setTimeout(function () {
+          loop();
+        }, 100);
+        var _width = !docWidth || (winWidth && winWidth < docWidth) ? winWidth : docWidth; // 兼容部分奇怪的安卓机
+        document.documentElement.style.fontSize = (_width / 750 * 40) + 'px';
+        scope.addEventListener(eventName, function () {
+          clearTimeout(scope.orientationChangedTimeout);
+          scope.orientationChangedTimeout = setTimeout(function () {
+            document.documentElement.style.fontSize = (_width / 750 * 40) + 'px';
+          }, howLong);
+        }, false);
+      };
+      loop();
+    }(window));
+  </script>
+  <!-- <script src="https://cdn.bootcss.com/vue/2.6.8/vue.min.js"></script> -->
+  <script src="./js/hammer.js"></script>
+  <script src="//source.bozhong.com/common/js/vconsole.min.js"></script>
+  <script>new VConsole()</script>
+  <style>
+  .animate {
+    transition: all .3s;
+  }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="drag__main">
+      <img class="drag__img" src="./img/img.jpeg"
+        style="transform: translate3d(0, 0, 0) scale(1, 1) rotate3d(0, 0, 0, 0deg);" />
+    </div>
+    <p class="yellow-font drag__text drag__title">让试纸与有效区域对齐</p>
+    <div class="drag__example"></div>
+    <!-- <div class="drag__highlight"></div> -->
+    <p class="drag__tip drag__text">友情提示：<br>各品牌试纸测试结果<span class="yellow-font">有效时间</span>略有不<br>同，请认真查看试纸说明
+      试纸宽度</p>
+    <div class="drag__mask--wrap">
+      <div class="drag__mask">
+        <p class="pink-font drag__mask--tip">试纸宽度</p>
+      </div>
+      <div class="drag__button--group">
+        <button class="drag__button drag__button--cancel">取消</button>
+        <button class="drag__button drag__button--confirm">确定</button>
+      </div>
+    </div>
+    <div class="drag__mask--transparent">
+    </div>
+  </div>
+  <script>
+    const img = document.querySelector('.drag__img');
+    var reqAnimationFrame = (function () {
+      return window[Hammer.prefixed(window, 'requestAnimationFrame')] || function (callback) {
+        window.setTimeout(callback, 1000 / 60);
+      };
+    })();
+
+    var el = document.querySelector('.drag__mask--transparent');
+
+    var START_X = 0;
+    var START_Y = 0;
+
+    var ticking = false;
+    var transform;
+
+    var mc = new Hammer.Manager(el);
+
+    mc.add(new Hammer.Pan({ threshold: 0, pointers: 0 }));
+    mc.add(new Hammer.Rotate({ threshold: 0 })).recognizeWith(mc.get('pan'));
+    mc.add(new Hammer.Pinch({ threshold: 0 })).recognizeWith([mc.get('pan'), mc.get('rotate')]);
+
+    mc.on("panstart panmove panend", onPan);
+    mc.on("rotatestart rotatemove", onRotate);
+    mc.on("pinchstart pinchmove", onPinch);
+
+
+    function resetElement() {
+      img.className = 'animate';
+      transform = {
+        translate: { x: START_X, y: START_Y },
+        scale: 1,
+        angle: 0,
+        rx: 0,
+        ry: 0,
+        rz: 0
+      };
+
+      requestElementUpdate();
+    }
+
+    function updateElementTransform() {
+      var value = [
+        'translate3d(' + transform.translate.x + 'px, ' + transform.translate.y + 'px, 0)',
+        'scale(' + transform.scale + ', ' + transform.scale + ')',
+        'rotate3d(' + transform.rx + ',' + transform.ry + ',' + transform.rz + ',' + transform.angle + 'deg)'
+      ];
+
+      value = value.join(" ");
+      img.style.webkitTransform = value;
+      img.style.mozTransform = value;
+      img.style.transform = value;
+      ticking = false;
+    }
+
+    function requestElementUpdate() {
+      if (!ticking) {
+        reqAnimationFrame(updateElementTransform);
+        ticking = true;
+      }
+    }
+
+
+    function onPan(ev) {
+      img.className = '';
+      transform.translate = {
+        x: START_X + ev.deltaX,
+        y: START_Y + ev.deltaY
+      };
+      if (ev.type === 'panend') {
+        START_X = transform.translate.x;
+        START_Y = transform.translate.y;
+      }
+
+      requestElementUpdate();
+    }
+
+    var initScale = 1;
+    function onPinch(ev) {
+      ev.preventDefault()
+      if (ev.type == 'pinchstart') {
+        initScale = transform.scale || 1;
+      }
+
+      img.className = '';
+      transform.scale = initScale * ev.scale;
+
+      requestElementUpdate();
+    }
+
+    var initAngle = 0;
+    function onRotate(ev) {
+      if (ev.type == 'rotatestart') {
+        initAngle = transform.angle || 0;
+      }
+
+      img.className = '';
+      transform.rz = 1;
+      transform.angle = initAngle + ev.rotation;
+
+      requestElementUpdate();
+    }
+
+    resetElement();
+  </script>
+</body>
+
+</html>

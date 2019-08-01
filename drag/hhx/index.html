@@ -7,7 +7,7 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Document</title>
   <link rel="stylesheet/less" href="./css/style.less">
-  <script src="//cdnjs.cloudflare.com/ajax/libs/less.js/3.9.0/less.min.js"></script>
+  <script src="./js/less.min.js"></script>
   <script>
     // rem
     (function (scope) {
@@ -36,15 +36,16 @@
       loop();
     }(window));
   </script>
-  <script src="https://cdn.bootcss.com/vue/2.6.8/vue.min.js"></script>
-  <!-- <script src="https://cdnjs.com/libraries/hammer.js/"></script> -->
+  <!-- <script src="https://cdn.bootcss.com/vue/2.6.8/vue.min.js"></script> -->
   <script src="./js/hammer.js"></script>
+  <script src="//source.bozhong.com/common/js/vconsole.min.js"></script>
+  <script>new VConsole()</script>
 </head>
 
 <body>
   <div id="app">
     <div class="drag__main">
-      <img class="drag__img" src="./img/img.jpeg" />
+      <img class="drag__img" src="./img/img.jpeg" style="transform: translate3d(0, 0, 0) scale(1, 1) rotate3d(0, 0, 0, 0deg); transition: all .3s;" />
     </div>
     <p class="yellow-font drag__text drag__title">让试纸与有效区域对齐</p>
     <div class="drag__example"></div>
@@ -65,8 +66,16 @@
     </div>
   </div>
   <script>
+    const reqAnimationFrame = (function () {
+      return window[Hammer.prefixed(window, 'requestAnimationFrame')] || function (callback) {
+          window.setTimeout(callback, 1000 / 60);
+      };
+    })();
+    function getTransformReg(attr) {
+      return new RegExp(attr + '\\((-?[a-z0-9]+\\,?\\s?)+\\)', 'g')
+    }
     function getTransformAttrStyle(style, attr) {
-      const reg = new RegExp(attr + '\\((-?[a-z0-9]+\\,?\\s?)+\\)', 'g');
+      const reg = getTransformReg(attr);
       const valueReg = new RegExp(attr +'\\(|\\)', 'g');
       const [attrStyle] = style.match(reg);
       const value = attrStyle.replace(valueReg, '')
@@ -75,9 +84,17 @@
     }
 
     const img = document.querySelector('.drag__img');
-    const hammer = new Hammer(document.querySelector('.drag__mask--transparent'));
-    let isMoveing = false
+    const mask = document.querySelector('.drag__mask--transparent');
+    const panStyleType = 'translate3d';
+    const rotateStyleType = 'rotate3d';
+    const scaleStyleType = 'scale'
 
+    const hammer = new Hammer(mask);
+    let isFirstPan = true;
+    let lastMoveXDistance = 0;
+    let lastMoveYDistance = 0;
+    let [translateX, translateY] = [0, 0];
+    let rotateAngle = 0;
 
     hammer.get('pinch').set({ enable: true });
     hammer.get('rotate').set({ enable: true });
@@ -85,17 +102,51 @@
     hammer.on('panstart panmove panend', function(e) {
       const eventType = e.type;
       const transformStyle = img.style.transform;
-      let [translateX, translateY] = [e.deltaX, e.deltaY];
-      // if (transformStyle) {
-      //   const [x, y] = getTransformAttrStyle(transformStyle, 'translate3d')
-      //   translateX = (+x.replace('px', '')) + e.deltaX;
-      //   translateY = (+y.replace('px', '')) + e.deltaY;
-      // }
-      console.log(e.type, e.distance, e.deltaX, e.deltaY)
-      document.getElementById('text').innerHTML = e.type + ',' + e.deltaX + ',' + e.deltaY + ',' + transformStyle
-      img.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(1, 1) rotate3d(0, 0, 0, 0deg)`
-      eventType === 'panend' && (isMoveing = false);
-    });
+      const [x, y] = getTransformAttrStyle(transformStyle, panStyleType)
+        .map(value => +value.replace('px', ''));
+
+
+      if (eventType === 'panstart') {
+        translateX = isFirstPan ? e.deltaX : x;
+        translateY = isFirstPan ? e.deltaY : y;
+      } else if (eventType === 'panmove') {
+        translateX +=  e.deltaX - lastMoveXDistance;
+        translateY += e.deltaY - lastMoveYDistance;
+        lastMoveXDistance = e.deltaX;
+        lastMoveYDistance = e.deltaY;
+
+      } else if (eventType === 'panend') {
+        isFirstPan = false;
+        lastMoveXDistance = 0;
+        lastMoveYDistance = 0;
+        translateX = x;
+        translateY = y;
+      }
+      img.style.transform = transformStyle.replace(getTransformReg(panStyleType), `${panStyleType}(${translateX}px, ${translateY}px, 0)`)
+    })
+    hammer.on('rotatestart rotatemove rotateend', function(e) {
+      if (e.type === 'rotatestart') {
+        initAngle = rotateAngle || 0;
+      }
+      rotateAngle = e.rotation
+      const transformStyle = img.style.transform;
+      // console.log(e.rotation)
+      reqAnimationFrame(function() {
+        img.style.transform = transformStyle.replace(getTransformReg(rotateStyleType), `${rotateStyleType}(0, 0, 1, ${rotateAngle}deg)`)
+        
+      })
+    })
+    hammer.on('pinchstart pinchmove pinchend', function(e) {
+      const transformStyle = img.style.transform;
+      console.log(e.type, e.scale)
+      // reqAnimationFrame(function() {
+      //   // console.log(e.scale, reg.toString(), value, transformStyle.replace(reg, value))
+      // })
+      const reg = getTransformReg(scaleStyleType);
+      const value = `${scaleStyleType}(${e.scale.toFixed(2)}, ${e.scale.toFixed(2)})`
+      img.style.transform = transformStyle.replace(reg, value);
+      console.log(img.style.transform)
+    })
   </script>
 </body>
 
